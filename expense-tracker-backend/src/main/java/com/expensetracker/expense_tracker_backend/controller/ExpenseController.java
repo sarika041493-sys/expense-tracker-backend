@@ -9,6 +9,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.math.BigDecimal;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/expenses")
@@ -32,6 +35,26 @@ public class ExpenseController {
         expense.setUser(defaultUser);
         return expenseRepository.save(expense);
     }
+
+    @GetMapping("/summary-by-category")
+    public List<Map<String, Object>> getSummaryByCategory(){
+        List<Expense> allExpenses = expenseRepository.findAll();
+
+    Map<String, BigDecimal> grouped = allExpenses.stream()
+            .collect(Collectors.groupingBy(
+                    e-> e.getCategory().getName(),
+                    Collectors.reducing(BigDecimal.ZERO, Expense::getAmount, BigDecimal::add)
+            ));
+    List<Map<String, Object>> result = new ArrayList<>();
+    for(Map.Entry<String, BigDecimal> entry:grouped.entrySet()){
+    Map<String, Object> item = new HashMap<>();
+    item.put("category", entry.getKey());
+    item.put("amount",entry.getValue());
+    result.add(item);
+    }
+    return  result;
+ }
+
 
     @PutMapping("/{id}")
     public ResponseEntity<?>updateExpense(@PathVariable Long id, @RequestBody Expense updated){
